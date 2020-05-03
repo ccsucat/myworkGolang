@@ -1,0 +1,20 @@
+{
+  "app_name": "myWork",
+  "port": "7999",
+  "data_base": {
+    "drive": "mysql",
+    "host": "127.0.0.1",
+    "port": "3306",
+    "user": "ccsu_cat",
+    "pwd": "123456",
+    "database": "myWork"
+  },
+  "redis": {
+    "net_work": "tcp",
+    "addr": "127.0.0.1",
+    "port": "6379",
+    "passwword": "",
+    "prefix": "qfCms_"
+  },
+  "mode": "dev"
+}
