@@ -14,6 +14,7 @@ type TicketService interface {
 	BuyTicket(startCity, endCity, trainId string, seatNum, seatKind int) (model.TravelList, bool)
 	AddOrder(order model.TOrder) bool
 	UpdateTicket(list model.TravelList, seatNum, seatKind int)
+	GetUserByUserId(userId string) bool
 }
 
 func NewTicketService(engine *xorm.Engine) TicketService {
@@ -26,14 +27,24 @@ type ticketService struct {
 	Engine *xorm.Engine
 }
 
+func (u *ticketService) GetUserByUserId(userId string) bool {
+	user := model.User{}
+	u.Engine.Where("id = ?", userId).Get(&user)
+	if user.Id == "" {
+		return false
+	}
+	return true
+}
+
+
 func (u *ticketService) UpdateTicket(list model.TravelList, seatNum, seatKind int) {
 	for _, info := range list {
 		if seatKind == 0 {
-			info.ZeroStatus |= (int64(1) << seatNum - 1)
+			info.ZeroStatus |= (int64(1) << (seatNum - 1))
 		} else if seatKind == 1 {
-			info.FirstStatus |= (int64(1) << seatNum - 1)
+			info.FirstStatus |= (int64(1) << (seatNum - 1))
 		} else {
-			info.SecondStatus |= (int64(1) << seatNum - 1)
+			info.SecondStatus |= (int64(1) << (seatNum - 1))
 		}
 		u.Engine.Where("train_id = ? and start_city = ?", info.TrainId, info.StartCity).Update(info)
 	}

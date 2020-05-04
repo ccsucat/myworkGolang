@@ -83,6 +83,10 @@ func LogDebug(app *iris.Application, v ...interface{}) {
 func FormatTrainDatatime(startTime, endTime time.Time) string {
 	t := endTime.Sub(startTime)
 	str := fmt.Sprintf("%v小时%v分钟", int(t.Hours() / 1), int(t.Minutes()) % 60)
+	if str[0] == '-' {
+		str = fmt.Sprintf("%v小时%v分钟", 11 + int(t.Hours() / 1), 60 + int(t.Minutes()) % 60)
+	}
+
 	return str
 }
 

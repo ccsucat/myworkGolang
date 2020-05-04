@@ -7,7 +7,7 @@ import (
 	"myWork/model"
 	"myWork/service"
 	utils "myWork/util"
-
+	"time"
 )
 
 type TicketController struct {
@@ -46,6 +46,16 @@ func (u *TicketController)PostBuy() mvc.Result {
 	price, _ := u.Ctx.PostValueFloat64("price")
 	startTime := u.Ctx.PostValue("start_time")
 	endTime := u.Ctx.PostValue("end_time")
+	isFirst, _ := u.Ctx.PostValueInt("is_first")
+	iris.New().Logger().Info(isFirst)
+	if !u.TicketService.GetUserByUserId(userId) {
+		return mvc.Response{
+			Object: map[string]interface{}{
+				"status": 0,
+				"data"   :  "没有该用户",
+			},
+		}
+	}
 	resp, ok := u.TicketService.BuyTicket(startCity, endCity, trainId, seatNum, seatKind)
 	if !ok {
 		return mvc.Response{
@@ -63,9 +73,11 @@ func (u *TicketController)PostBuy() mvc.Result {
 		EndCity:   endCity,
 		StartTime: utils.GetTimeByString(startTime),
 		EndTime:   utils.GetTimeByString(endTime),
+		OrderTime: time.Now(),
 		Price:     float32(price),
 		SeatKind:  seatKind,
 		SeatNum:   seatNum,
+		IsFirst:   isFirst,
 	}
 	ok = u.TicketService.AddOrder(order)
 	if !ok {

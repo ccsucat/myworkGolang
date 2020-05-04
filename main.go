@@ -61,6 +61,14 @@ func mvcHandle(app *iris.Application) {
 		)
 	ticket.Handle(new(controller.TicketController))
 
+	orderService := service.NewOrderService(engine)
+	order := mvc.New(app.Party("/order"))
+	order.Register(
+		orderService,
+		sessManager.Start,
+		)
+	order.Handle(new(controller.OrderController))
+
 
 
 }

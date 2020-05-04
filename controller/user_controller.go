@@ -87,6 +87,8 @@ func (uc *UserController) PostLogin() mvc.Result {
 		Object: map[string]interface{}{
 			"status": utils.LOGIN_SUCESS,
 			"data": userInfo,
+			"user_id" : userInfo.Id,
+			"user_name" : userInfo.UserName,
 		},
 	}
 }
