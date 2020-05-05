@@ -14,6 +14,8 @@ type TOrder struct {
 	EndCity       string     `json:"end_city"`
 	StartTime     time.Time  `json:"start_time"`
 	EndTime       time.Time  `json:"end_time"`
+	StartTimeUnix int64        `json:"start_time_unix"`
+	EndTimeUnix   int64        `json:"end_time_unix"`
 	OrderTime     time.Time  `json:"order_time"`
 	Price         float32    `json:"price"`
 	SeatKind      int        `json:"seat_kind"`

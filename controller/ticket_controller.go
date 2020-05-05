@@ -48,7 +48,7 @@ func (u *TicketController)PostBuy() mvc.Result {
 	endTime := u.Ctx.PostValue("end_time")
 	isFirst, _ := u.Ctx.PostValueInt("is_first")
 	iris.New().Logger().Info(isFirst)
-	if !u.TicketService.GetUserByUserId(userId) {
+	if !u.TicketService.GetUserByUserId(userId, userName) {
 		return mvc.Response{
 			Object: map[string]interface{}{
 				"status": 0,
@@ -65,6 +65,14 @@ func (u *TicketController)PostBuy() mvc.Result {
 			},
 		}
 	}
+	if u.TicketService.GetOrderByTime(startTime, endTime, userId) {
+		return mvc.Response{
+			Object: map[string]interface{}{
+				"status": 0,
+				"data"   :  "购买失败，与已有订单时间冲突",
+			},
+		}
+	}
 	order := model.TOrder{
 		TrainId:   trainId,
 		UserId:    userId,
@@ -73,6 +81,8 @@ func (u *TicketController)PostBuy() mvc.Result {
 		EndCity:   endCity,
 		StartTime: utils.GetTimeByString(startTime),
 		EndTime:   utils.GetTimeByString(endTime),
+		StartTimeUnix: utils.GetTimeByString(startTime).Unix(),
+		EndTimeUnix:   utils.GetTimeByString(endTime).Unix(),
 		OrderTime: time.Now(),
 		Price:     float32(price),
 		SeatKind:  seatKind,

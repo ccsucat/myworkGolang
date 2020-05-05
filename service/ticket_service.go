@@ -14,7 +14,8 @@ type TicketService interface {
 	BuyTicket(startCity, endCity, trainId string, seatNum, seatKind int) (model.TravelList, bool)
 	AddOrder(order model.TOrder) bool
 	UpdateTicket(list model.TravelList, seatNum, seatKind int)
-	GetUserByUserId(userId string) bool
+	GetUserByUserId(userId, userName string) bool
+	GetOrderByTime(startTime, endTime, userId string) bool
 }
 
 func NewTicketService(engine *xorm.Engine) TicketService {
@@ -27,9 +28,34 @@ type ticketService struct {
 	Engine *xorm.Engine
 }
 
-func (u *ticketService) GetUserByUserId(userId string) bool {
+func (u *ticketService) GetOrderByTime(startTimeStr, endTimeStr, userId string) bool {
+	startTimeDate := utils.GetTimeByString(startTimeStr)
+	endTimeDate := utils.GetTimeByString(endTimeStr)
+	startTimeUnix := startTimeDate.Unix() - int64(600)
+	endTimeUnix := endTimeDate.Unix() + int64((600))
+	order := model.TOrder{}
+	u.Engine.Where("user_id = ? and start_time_unix <= ? and end_time_unix >= ?", userId, startTimeUnix, endTimeUnix).Get(&order)
+	if order.UserId != "" {
+		return true
+	}
+	order = model.TOrder{}
+	u.Engine.Where("user_id = ? and start_time_unix <= ? and start_time_unix >= ?", userId, endTimeUnix, startTimeUnix).Get(&order)
+	if order.UserId != "" {
+		return true
+	}
+	order = model.TOrder{}
+	u.Engine.Where("user_id = ? and end_time_unix <= ? and end_time_unix >= ?", userId, endTimeUnix, startTimeUnix).Get(&order)
+	if order.UserId != "" {
+		return true
+	}
+	return false
+
+
+}
+
+func (u *ticketService) GetUserByUserId(userId, userName string) bool {
 	user := model.User{}
-	u.Engine.Where("id = ?", userId).Get(&user)
+	u.Engine.Where("id = ? and user_name = ?", userId, userName).Get(&user)
 	if user.Id == "" {
 		return false
 	}
