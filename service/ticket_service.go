@@ -1,6 +1,7 @@
 package service
 
 import (
+	"container/heap"
 	"github.com/go-xorm/xorm"
 	"github.com/kataras/iris"
 	"myWork/model"
@@ -16,6 +17,7 @@ type TicketService interface {
 	UpdateTicket(list model.TravelList, seatNum, seatKind int)
 	GetUserByUserId(userId, userName string) bool
 	GetOrderByTime(startTime, endTime, userId string) bool
+	GetTicketByInfo(startCity, endCity string, seatKind int, duration int64, price float32) []model.Travel
 }
 
 func NewTicketService(engine *xorm.Engine) TicketService {
@@ -27,6 +29,158 @@ func NewTicketService(engine *xorm.Engine) TicketService {
 type ticketService struct {
 	Engine *xorm.Engine
 }
+
+func (u *ticketService) GetTicketByInfo(startCity, endCity string, seatKind int, duration int64, price float32) []model.Travel {
+
+	iris.New().Logger().Info("----", startCity, endCity, seatKind, duration, price)
+	var pre [2000] int
+	var vis [2000] int
+	record := map[int]model.Travel{}
+	cnt := 20
+	var dp [2000] int64
+	var f [2000] int
+	var ans []int
+	for i := 0; i < 2000; i++ {
+		dp[i] = (int64(1) << 60)
+		pre[i] = 0
+		vis[i] = 0
+		f[i] = 100000
+	}
+	travel := []model.Travel{}
+	u.Engine.Where("start_city = ?", startCity).Find(&travel)
+	queue := &utils.T{}
+	temp := &utils.T{}
+	//iris.New().Logger().Info("---------", travel)
+	heap.Init(queue)
+	heap.Init(temp)
+	for _, info := range travel {
+		queue.Push(info.TravelToX())
+		pre[info.TravelId] = info.TravelId
+		f[info.TravelId] = 1
+		record[info.TravelId] = info
+	}
+	for ;queue.Len() > 0; {
+		sort.Sort(queue)
+		XTravel := queue.Pop().(utils.XTravel)
+		iris.New().Logger().Info("----", XTravel.ChangeTime, XTravel.Duration)
+		if vis[XTravel.TravelId] == 1 {
+			continue
+		}
+		vis[XTravel.TravelId] = 1
+		if XTravel.City == endCity {
+			ans = append(ans, XTravel.TravelId)
+			continue
+			cnt--
+			if cnt == 0 {
+				break
+			}
+		}
+
+		travel = []model.Travel{}
+		u.Engine.Where("start_city = ?", XTravel.City).Find(&travel)
+		for _, info := range travel {
+			if XTravel.TrainId != info.TrainId {
+				if (info.StartTime.Unix()-XTravel.EndTime.Unix()) > duration || info.StartTime.Unix() < XTravel.EndTime.Unix()+180 {
+					//iris.New().Logger().Info("++++++++", (info.StartTime.Unix() - XTravel.EndTime.Unix()), duration)
+					continue
+				}
+			}
+			NewTravel := utils.XTravel{
+				TravelId:     info.TravelId,
+				City:         info.EndCity,
+				StartTime:    XTravel.StartTime,
+				EndTime:      info.EndTime,
+				TrainId:      info.TrainId,
+				ZeroPrice:    XTravel.ZeroPrice + info.ZeroPrice,
+				FirstPrice:   XTravel.FirstPrice + info.FirstPrice,
+				SecondPrice:  XTravel.SecondPrice + info.SecondPrice,
+				ZeroStatus:   XTravel.ZeroStatus | info.ZeroStatus,
+				FirstStatus:  XTravel.FirstStatus | info.FirstStatus,
+				SecondStatus: XTravel.SecondStatus | info.SecondStatus,
+				Duration:     info.EndTime.Unix() - XTravel.StartTime.Unix(),
+				ChangeTime:   XTravel.ChangeTime,
+			}
+			if XTravel.TrainId != info.TrainId {
+				NewTravel.ChangeTime++
+			}
+			ok := false
+			Max := (int64(1) << 60) - 1
+			if seatKind % 2 == 1 {
+				if NewTravel.ZeroStatus != Max && NewTravel.ZeroPrice <= price {
+					ok = true
+				}
+			}
+			if seatKind % 4 >= 2 {
+				if NewTravel.FirstStatus != Max && NewTravel.FirstPrice <= price {
+					ok = true
+				}
+			}
+			if seatKind >= 4 {
+				if NewTravel.SecondStatus != Max && NewTravel.SecondPrice <= price {
+					ok = true
+				}
+			}
+			if !ok {
+				continue
+			}
+
+			if f[info.TravelId] < NewTravel.ChangeTime || (f[info.TravelId] == NewTravel.ChangeTime && dp[info.TravelId] <= NewTravel.Duration) {
+				continue
+			}
+			f[info.TravelId] = NewTravel.ChangeTime
+			dp[info.TravelId] = NewTravel.Duration
+			pre[info.TravelId] = XTravel.TravelId
+			record[info.TravelId] = info
+			heap.Push(queue, NewTravel)
+			//queue.Push(NewTravel)
+		}
+	}
+	//sort.Sort(temp)
+	//for ;temp.Len() > 0; {
+	//	tempTravel := temp.Pop().(utils.XTravel)
+	//	ans = append(ans, tempTravel.TravelId)
+	//}
+	iris.New().Logger().Info("-----", ans)
+	resp := model.TravelList{}
+	for _, Tindex := range ans {
+		stack := utils.NewStack()
+		index := Tindex
+		stack.Push(index)
+		for ;pre[index] != index; {
+			index = pre[index]
+			stack.Push(index)
+		}
+		pre := model.Travel{}
+		for ;stack.Len() != 0; {
+			id := stack.Top().(int)
+			stack.Pop()
+			if reflect.DeepEqual(pre, model.Travel{}) {
+				pre = record[id]
+			} else {
+				if pre.TrainId == record[id].TrainId {
+					value := record[id]
+					info := pre
+					info.EndCity = value.EndCity
+					info.EndTime = value.EndTime
+					info.ZeroPrice += value.ZeroPrice
+					info.FirstPrice += value.FirstPrice
+					info.SecondPrice += value.SecondPrice
+					info.ZeroStatus |= value.ZeroStatus
+					info.FirstStatus |= value.FirstStatus
+					info.SecondStatus |= value.SecondStatus
+					pre = info
+				} else {
+					resp = append(resp, pre)
+					pre = record[id]
+				}
+			}
+		}
+		resp = append(resp, pre)
+	}
+	//sort.Sort(resp)
+	return resp
+}
+
 
 func (u *ticketService) GetOrderByTime(startTimeStr, endTimeStr, userId string) bool {
 	startTimeDate := utils.GetTimeByString(startTimeStr)

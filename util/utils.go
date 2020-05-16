@@ -91,7 +91,7 @@ func FormatTrainDatatime(startTime, endTime time.Time) string {
 }
 
 func FormatDatetime(time time.Time) string {
-	return time.Format("2006-01-02 03:04")
+	return time.Format("2006-01-02 15:04")
 }
 
 func GetSeatNum(status int64) int {

@@ -46,6 +46,24 @@ type Ticket struct {
 	SecondPrice   float32
 }
 
+func (t *Travel) TravelToX() utils.XTravel {
+	return utils.XTravel{
+		TravelId:     t.TravelId,
+		City:         t.EndCity,
+		StartTime:    t.StartTime,
+		EndTime:      t.EndTime,
+		TrainId:      t.TrainId,
+		ZeroPrice:    t.ZeroPrice,
+		FirstPrice:   t.FirstPrice,
+		SecondPrice:  t.SecondPrice,
+		ZeroStatus:   t.ZeroStatus,
+		FirstStatus:  t.FirstStatus,
+		SecondStatus: t.SecondStatus,
+		Duration:     t.EndTime.Unix() - t.StartTime.Unix(),
+		ChangeTime:   1,
+	}
+}
+
 func (t *Travel) TravelToRespDesc() interface{} {
 	respInfo := map[string]interface{}{
 		"train_id"      :   t.TrainId,

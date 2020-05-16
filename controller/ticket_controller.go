@@ -7,6 +7,7 @@ import (
 	"myWork/model"
 	"myWork/service"
 	utils "myWork/util"
+	"strconv"
 	"time"
 )
 
@@ -22,6 +23,29 @@ func (u *TicketController) GetQuery() mvc.Result {
 	endCity := u.Ctx.FormValue("end_city")
 	infos := u.TicketService.GetTicketByCity(startCity, endCity)
 
+	var rep  []interface{}
+	for _, info := range infos {
+		rep = append(rep, info.TravelToRespDesc())
+	}
+	return mvc.Response{
+		Object: map[string]interface{}{
+			"status": 0,
+			"data"   :  rep,
+		},
+	}
+}
+
+func (u *TicketController) GetQuery2() mvc.Result {
+	iris.New().Logger().Info("moreQuery")
+	startCity := u.Ctx.FormValue("start_city")
+	endCity := u.Ctx.FormValue("end_city")
+	priceStr := u.Ctx.FormValue("price")
+	seatkindStr := u.Ctx.FormValue("seat_kind")
+	durationStr := u.Ctx.FormValue("duration")
+	price, _ := strconv.ParseFloat(priceStr,32)
+	seatkind, _ := strconv.ParseInt(seatkindStr, 10, 32)
+	duration, _ := strconv.ParseInt(durationStr, 10, 64)
+	infos := u.TicketService.GetTicketByInfo(startCity, endCity, int(seatkind), duration * 60, float32(price))
 	var rep  []interface{}
 	for _, info := range infos {
 		rep = append(rep, info.TravelToRespDesc())
