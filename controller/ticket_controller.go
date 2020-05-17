@@ -39,12 +39,13 @@ func (u *TicketController) GetQuery2() mvc.Result {
 	iris.New().Logger().Info("moreQuery")
 	startCity := u.Ctx.FormValue("start_city")
 	endCity := u.Ctx.FormValue("end_city")
-	priceStr := u.Ctx.FormValue("price")
-	seatkindStr := u.Ctx.FormValue("seat_kind")
-	durationStr := u.Ctx.FormValue("duration")
+	priceStr := u.Ctx.FormValueDefault("price", "100000")
+	seatkindStr := u.Ctx.FormValueDefault("seat_kind", "7")
+	durationStr := u.Ctx.FormValueDefault("duration", "1000")
 	price, _ := strconv.ParseFloat(priceStr,32)
 	seatkind, _ := strconv.ParseInt(seatkindStr, 10, 32)
 	duration, _ := strconv.ParseInt(durationStr, 10, 64)
+	iris.New().Logger().Info("------", price, seatkind, duration)
 	infos := u.TicketService.GetTicketByInfo(startCity, endCity, int(seatkind), duration * 60, float32(price))
 	var rep  []interface{}
 	for _, info := range infos {
