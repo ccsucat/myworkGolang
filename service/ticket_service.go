@@ -36,7 +36,8 @@ func (u *ticketService) GetTicketByInfo(startCity, endCity string, seatKind int,
 	var pre [2000] int
 	var vis [2000] int
 	record := map[int]model.Travel{}
-	cnt := 20
+	travelMap := map[string][]model.Travel{}
+	cnt := 100
 	var dp [2000] int64
 	var f [2000] int
 	var ans []int
@@ -68,7 +69,8 @@ func (u *ticketService) GetTicketByInfo(startCity, endCity string, seatKind int,
 		}
 		vis[XTravel.TravelId] = 1
 		if XTravel.City == endCity {
-			ans = append(ans, XTravel.TravelId)
+			//ans = append(ans, XTravel.TravelId)
+			temp.Push(XTravel)
 			continue
 			cnt--
 			if cnt == 0 {
@@ -77,7 +79,12 @@ func (u *ticketService) GetTicketByInfo(startCity, endCity string, seatKind int,
 		}
 
 		travel = []model.Travel{}
-		u.Engine.Where("start_city = ?", XTravel.City).Find(&travel)
+		if travelMap[XTravel.City] == nil {
+			u.Engine.Where("start_city = ?", XTravel.City).Find(&travel)
+			travelMap[XTravel.City] = travel
+		} else {
+			travel = travelMap[XTravel.City]
+		}
 		for _, info := range travel {
 			if XTravel.TrainId != info.TrainId {
 				if (info.StartTime.Unix()-XTravel.EndTime.Unix()) > duration || info.StartTime.Unix() < XTravel.EndTime.Unix()+180 {
@@ -135,11 +142,11 @@ func (u *ticketService) GetTicketByInfo(startCity, endCity string, seatKind int,
 			//queue.Push(NewTravel)
 		}
 	}
-	//sort.Sort(temp)
-	//for ;temp.Len() > 0; {
-	//	tempTravel := temp.Pop().(utils.XTravel)
-	//	ans = append(ans, tempTravel.TravelId)
-	//}
+	sort.Sort(temp)
+	for i := 0; temp.Len() > 0 && i < 15; i++ {
+		tempTravel := temp.Pop().(utils.XTravel)
+		ans = append(ans, tempTravel.TravelId)
+	}
 	iris.New().Logger().Info("-----", ans)
 	resp := model.TravelList{}
 	for _, Tindex := range ans {
